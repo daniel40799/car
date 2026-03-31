@@ -52,22 +52,22 @@ Visitors can discover artists through:
 
 ### Inquiry System
 
-Visitors can contact artists through a booking or inquiry form. Inquiries are stored in the system and delivered via email to artists and/or admins. Artists respond outside the platform.
+Visitors can contact artists through a booking or inquiry form. Inquiries are currently stored in the system and can be viewed by profile managers. Email delivery is planned.
 
 ### Admin Moderation
 
-Administrators manage the integrity of the directory. Admins can approve or reject artist profiles, verify artist authenticity, suspend profiles, and manage art branches, genres, and Cebu localities.
+Admin moderation and verification workflows are planned.
 
 ---
 
 ## 🏗 System Architecture
 
 ```
-React (TypeScript)
-        │
-        │  REST API
-        ▼
-Spring Boot Backend
+Planned Frontend (React + Vite)
+             │
+             │  REST API
+             ▼
+Spring Boot Backend (implemented)
         │
         ▼
 PostgreSQL Database
@@ -82,9 +82,9 @@ Optional future components: Background Workers · Redis Cache · Email Queue · 
 ### Backend
 | | |
 |---|---|
-| Language | Java 26 |
+| Language | Java 21 |
 | Framework | Spring Boot |
-| Security | Spring Security + OAuth2 |
+| Security | Spring Security dependency (authentication flows planned) |
 | Persistence | Spring Data JPA |
 | Migrations | Flyway |
 | Database | PostgreSQL |
@@ -93,12 +93,12 @@ Optional future components: Background Workers · Redis Cache · Email Queue · 
 ### Frontend
 | | |
 |---|---|
-| Language | TypeScript |
-| Framework | React + Vite |
-| Routing | React Router |
-| Data Fetching | TanStack Query |
-| Forms | React Hook Form |
-| Styling | Tailwind CSS |
+| Language | TypeScript *(planned)* |
+| Framework | React + Vite *(planned)* |
+| Routing | React Router *(planned)* |
+| Data Fetching | TanStack Query *(planned)* |
+| Forms | React Hook Form *(planned)* |
+| Styling | Tailwind CSS *(planned)* |
 
 > Redux may be added later if global client-state complexity grows.
 
@@ -109,36 +109,20 @@ Optional future components: Background Workers · Redis Cache · Email Queue · 
 ### Backend
 
 ```
-backend/
- ├── auth/           # Login, registration, OAuth
- ├── user/           # User accounts
- ├── artist/         # Artist profiles and managers
- ├── taxonomy/       # Branches, genres, localities
- ├── inquiry/        # Inquiry submission
- ├── admin/          # Moderation and verification
- ├── common/
- ├── config/
- └── security/       # Authentication and authorization
+src/main/java/com/project/car/
+ ├── artist/         # Profile management, portfolio, social links, public directory
+ ├── inquiry/        # Public inquiry submission + manager inquiry access
+ ├── taxonomy/       # Localities, art branches, genres (public taxonomy endpoints)
+ ├── user/           # User entity/repository
+ ├── common/         # Shared enums, base entity, exception handlers
+ ├── audit/          # Audit entity (initial schema)
+ └── CarApplication.java
 ```
 
 ### Frontend
 
 ```
-frontend/src/
- ├── app/
- ├── routes/
- ├── pages/
- ├── features/
- │   ├── auth/
- │   ├── artistProfiles/
- │   ├── publicDirectory/
- │   ├── inquiries/
- │   └── admin/
- ├── components/
- ├── hooks/
- ├── services/
- ├── types/
- └── utils/
+Planned as a separate React + Vite project.
 ```
 
 ---
@@ -202,30 +186,40 @@ Full entity list: `users` · `artist_profiles` · `artist_profile_managers` · `
 
 ### Prerequisites
 
-- Java 26
-- Node.js 18+
+- Java 21
 - PostgreSQL
 - Maven
 - Git
+- Node.js 18+ (only needed once the separate frontend project is added)
 
 ### Backend
 
 ```bash
-cd backend
+cd car
 ./mvnw spring-boot:run
+```
+
+On Windows PowerShell, you can run:
+
+```powershell
+cd car
+.\mvnw.cmd spring-boot:run
 ```
 
 Backend API runs on `http://localhost:8080`. Flyway automatically applies database migrations on startup.
 
 ### Frontend
 
+Planned as a separate repository/app.
+
+Example commands (when available):
+
 ```bash
-cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs on `http://localhost:5173`.
+Expected frontend dev server (when available): `http://localhost:5173`.
 
 ---
 
@@ -233,50 +227,63 @@ Frontend runs on `http://localhost:5173`.
 
 | Phase | Focus |
 |---|---|
-| **Phase 1** | Spring Boot setup · PostgreSQL schema · Flyway migrations · React project init |
-| **Phase 2** | User authentication · Artist profile creation · Manager relationships · Taxonomy |
-| **Phase 3** | Artist directory · Search & filtering · Public profile page |
-| **Phase 4** | Inquiry submission · Email notifications · Admin approval & verification |
-| **Phase 5** | Portfolio management · Visibility settings · Manager assignment UI · Audit logging |
+| **Phase 1** | Spring Boot setup · PostgreSQL schema · Flyway migrations *(completed)* |
+| **Phase 2** | Artist profile creation · Manager relationships · Taxonomy endpoints *(in progress)* |
+| **Phase 3** | Public directory · Search & filtering · Public profile page *(in progress)* |
+| **Phase 4** | Inquiry submission *(implemented)* · Email notifications *(planned)* · Admin approval/verification *(planned)* |
+| **Phase 5** | Portfolio/visibility enhancements · Manager assignment UI · Audit logging workflows *(planned)* |
 
 ---
 
 ## 📡 API Overview
 
-### Authentication
-```
-POST  /api/auth/register
-POST  /api/auth/login
-GET   /api/auth/me
-```
-
 ### Artist Profiles
 ```
-POST  /api/artist-profiles
-GET   /api/artist-profiles/my-managed
-GET   /api/artist-profiles/{id}
-PUT   /api/artist-profiles/{id}
+POST /api/v1/artist-profiles
+GET /api/v1/artist-profiles/me/managed
+GET /api/v1/artist-profiles/{id}
+PATCH /api/v1/artist-profiles/{id}
+
+GET /api/v1/artist-profiles/{id}/social-links
+POST /api/v1/artist-profiles/{id}/social-links
+PATCH /api/v1/artist-profiles/{id}/social-links/{linkId}
+DELETE /api/v1/artist-profiles/{id}/social-links/{linkId}
+
+GET /api/v1/artist-profiles/{id}/portfolio-items
+POST /api/v1/artist-profiles/{id}/portfolio-items
+PATCH /api/v1/artist-profiles/{id}/portfolio-items/{itemId}
+DELETE /api/v1/artist-profiles/{id}/portfolio-items/{itemId}
+
+GET /api/v1/artist-profiles/{id}/genres
+POST /api/v1/artist-profiles/{id}/genres/{genreId}
+DELETE /api/v1/artist-profiles/{id}/genres/{genreId}
 ```
 
 ### Public Directory
 ```
-GET   /api/public/artists
-GET   /api/public/artists/{slug}
+GET /api/v1/public/artists
+GET /api/v1/public/artists/{slug}
 ```
+
+Notes for `GET /api/v1/public/artists`:
+- Optional query params: `keyword`, `localityId`, `artBranchId`, `genreId`
+- Pagination params: `page` (default `0`), `size` (default `20`)
 
 ### Inquiries
 ```
-POST  /api/public/artists/{artistId}/inquiries
-GET   /api/artist-profiles/{artistId}/inquiries
+POST /api/v1/public/artist-profiles/{artistProfileId}/inquiries
+GET /api/v1/artist-profiles/{id}/inquiries
+```
+
+### Public Taxonomy
+```
+GET /api/v1/public/taxonomy/localities
+GET /api/v1/public/taxonomy/art-branches
+GET /api/v1/public/taxonomy/genres
 ```
 
 ### Admin
-```
-GET   /api/admin/artist-profiles/pending
-PATCH /api/admin/artist-profiles/{id}/approve
-PATCH /api/admin/artist-profiles/{id}/reject
-PATCH /api/admin/artist-profiles/{id}/verify
-```
+Planned.
 
 ---
 
